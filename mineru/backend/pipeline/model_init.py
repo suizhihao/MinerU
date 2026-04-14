@@ -16,6 +16,8 @@ from ...model.table.rec.unet_table.main import UnetTableModel
 from ...utils.config_reader import get_device
 from ...utils.enum_class import ModelPath
 from ...utils.models_download_utils import auto_download_and_get_model_root_path
+from ...lifecycle.config import load_lifecycle_config
+from ...lifecycle.runtime import apply_weight_override
 
 PIPELINE_MODEL_INIT_LOCK = threading.RLock()
 
@@ -203,6 +205,7 @@ class MineruPipelineModel:
         self.apply_table = self.table_config.get('enable', True)
         self.lang = kwargs.get('lang', None)
         self.device = kwargs.get('device', 'cpu')
+        self.lifecycle_config = load_lifecycle_config()
         logger.info(
             'DocAnalysis init, this may take some times......'
         )
@@ -232,11 +235,23 @@ class MineruPipelineModel:
             ),
             device=self.device,
         )
+        apply_weight_override(
+            role="layout",
+            model_obj=self.layout_model,
+            config=self.lifecycle_config,
+            device=self.device,
+        )
         # 初始化ocr
         self.ocr_model = atom_model_manager.get_atom_model(
             atom_model_name=AtomicModel.OCR,
             det_db_box_thresh=0.3,
             lang=self.lang
+        )
+        apply_weight_override(
+            role="ocr",
+            model_obj=self.ocr_model,
+            config=self.lifecycle_config,
+            device=self.device,
         )
         # init table model
         if self.apply_table:

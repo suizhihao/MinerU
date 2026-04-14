@@ -14,6 +14,7 @@ from .model_json_to_middle_json import (
     init_middle_json,
 )
 from ..utils import exclude_progress_bar_idle_time
+from mineru.lifecycle.metrics import record_pipeline_batch
 from mineru.utils.config_reader import get_device, get_processing_window_size
 from ...utils.enum_class import ImageType
 from ...utils.pdf_classify import classify
@@ -187,6 +188,7 @@ def doc_analyze_streaming(
     _emit_zero_page_contexts(doc_contexts, on_doc_ready)
     processed_pages = 0
     infer_start = time.time()
+    metrics_device = get_device()
     try:
         progress_bar = None
         last_append_end_time = None
@@ -237,10 +239,26 @@ def doc_analyze_streaming(
                     f'batch_pages={len(batch_images)}, doc_slices={_format_doc_slices(batch_slices)}'
                 )
 
+                batch_t0 = time.time()
                 batch_results = batch_image_analyze(
                     batch_images,
                     formula_enable=formula_enable,
                     table_enable=table_enable,
+                )
+                batch_infer_s = time.time() - batch_t0
+                doc_slices_str = _format_doc_slices(batch_slices)
+                extra_metrics = {}
+                try:
+                    vram_gb = get_vram(metrics_device)
+                    extra_metrics["vram_reserved_gb"] = vram_gb
+                except Exception:
+                    pass
+                record_pipeline_batch(
+                    batch_index=batch_index,
+                    page_count=len(batch_images),
+                    infer_seconds=batch_infer_s,
+                    doc_slices=doc_slices_str,
+                    extra=extra_metrics or None,
                 )
                 if progress_bar is None:
                     progress_bar = tqdm(total=total_pages, desc="Processing pages")

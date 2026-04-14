@@ -262,6 +262,20 @@ You can get the [Docker Deployment Instructions](https://opendatalab.github.io/M
 
 ---
 
+### Optional model lifecycle tools
+
+For teams that maintain custom checkpoints around the default pipeline models, MinerU ships an **optional** `mineru[lifecycle]` extra (torch-backed) with neutral, product-level entry points:
+
+- **`mineru-train-repair`** — runs a user-supplied Python training/repair script; set `MINERU_LIFECYCLE_REPAIR_ENTRY` or pass `--entry`.
+- **`mineru-runtime-steady`** — runs a user-supplied runtime steady-state / adaptation script; set `MINERU_LIFECYCLE_STEADY_ENTRY` or pass `--entry`.
+- **`mineru-release-verify`** — trains a small probe student on reference logits and probe labels, then writes a JSON report; use `--baseline-acc` for the reference accuracy on the same probe set.
+
+**Weight overrides at inference** (off by default): set `MINERU_LIFECYCLE_ENABLE=1` and optionally `MINERU_LIFECYCLE_LAYOUT_CHECKPOINT`, `MINERU_LIFECYCLE_OCR_CHECKPOINT`, or `MINERU_LIFECYCLE_WEIGHT_OVERRIDES_JSON`. Legacy `MINERU_GOVERNANCE_*` variables are still read for one transition period but log a deprecation warning—prefer the `MINERU_LIFECYCLE_*` names.
+
+**Optional pipeline batch metrics** (off by default): set `MINERU_LIFECYCLE_METRICS_ENABLE=1` and `MINERU_LIFECYCLE_METRICS_PATH` to append one NDJSON line per processing-window batch (timestamp, batch index, page count, infer seconds, doc slice summary, and best-effort GPU memory info when available).
+
+---
+
 ### Using MinerU
 
 
